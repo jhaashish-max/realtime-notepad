@@ -3,29 +3,22 @@
 const Auth = (() => {
     /**
      * Sign up a new user with email and password.
-     * @param {string} email
-     * @param {string} password
-     * @returns {Promise<{user: object|null, error: object|null}>}
+     * Returns { user, session, error }
      */
     async function signUp(email, password) {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-        });
-        return { user: data?.user ?? null, error };
+        const { data, error } = await sb.auth.signUp({ email, password });
+        return {
+            user: data?.user ?? null,
+            session: data?.session ?? null,
+            error,
+        };
     }
 
     /**
      * Log in an existing user.
-     * @param {string} email
-     * @param {string} password
-     * @returns {Promise<{user: object|null, error: object|null}>}
      */
     async function logIn(email, password) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
         return { user: data?.user ?? null, error };
     }
 
@@ -33,25 +26,23 @@ const Auth = (() => {
      * Log out the current user.
      */
     async function logOut() {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await sb.auth.signOut();
         if (error) console.error('Logout error:', error.message);
     }
 
     /**
      * Get the current session (if any).
-     * @returns {Promise<object|null>}
      */
     async function getSession() {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await sb.auth.getSession();
         return data?.session ?? null;
     }
 
     /**
      * Listen for auth state changes.
-     * @param {function} callback - receives (event, session)
      */
     function onAuthChange(callback) {
-        supabase.auth.onAuthStateChange((event, session) => {
+        sb.auth.onAuthStateChange((event, session) => {
             callback(event, session);
         });
     }

@@ -15,7 +15,6 @@ const Notepad = (() => {
 
     /**
      * Initialize the notepad for a given user.
-     * @param {string} userId
      */
     async function init(userId) {
         _userId = userId;
@@ -42,7 +41,7 @@ const Notepad = (() => {
     async function _loadNote() {
         _setSyncStatus('syncing');
 
-        const { data, error } = await supabase
+        const { data, error } = await sb
             .from('notes')
             .select('content, updated_at')
             .eq('user_id', _userId)
@@ -61,7 +60,7 @@ const Notepad = (() => {
             _updateLastSaved(data.updated_at);
         } else {
             // No note yet — create an empty one
-            const { error: insertError } = await supabase
+            const { error: insertError } = await sb
                 .from('notes')
                 .insert({ user_id: _userId, content: '' });
 
@@ -78,6 +77,7 @@ const Notepad = (() => {
      * Handle local typing — debounce and write to Supabase.
      */
     function _onLocalInput() {
+        if (_isRemoteUpdate) return;
         _updateCharCount();
         _setSyncStatus('syncing');
 
@@ -89,7 +89,6 @@ const Notepad = (() => {
 
     /**
      * Save note content to Supabase.
-     * @param {string} content
      */
     async function _saveNote(content) {
         if (content === _lastContent) {
@@ -99,7 +98,7 @@ const Notepad = (() => {
 
         _lastContent = content;
 
-        const { error } = await supabase
+        const { error } = await sb
             .from('notes')
             .update({ content, updated_at: new Date().toISOString() })
             .eq('user_id', _userId);
@@ -118,7 +117,7 @@ const Notepad = (() => {
      * Subscribe to realtime Postgres changes on the notes table for this user.
      */
     function _subscribeRealtime() {
-        _subscription = supabase
+        _subscription = sb
             .channel('notes-realtime')
             .on(
                 'postgres_changes',
@@ -143,7 +142,6 @@ const Notepad = (() => {
 
     /**
      * Handle incoming remote changes — update textarea without losing cursor.
-     * @param {object} note
      */
     function _handleRemoteChange(note) {
         if (!note || note.content === _lastContent) return;
@@ -179,7 +177,6 @@ const Notepad = (() => {
 
     /**
      * Update the "last saved" display.
-     * @param {string} isoString
      */
     function _updateLastSaved(isoString) {
         if (!_lastSaved || !isoString) return;
@@ -190,7 +187,6 @@ const Notepad = (() => {
 
     /**
      * Set the sync status indicator.
-     * @param {'connected'|'syncing'|'error'} status
      */
     function _setSyncStatus(status) {
         if (!_syncStatus) return;
@@ -207,7 +203,7 @@ const Notepad = (() => {
      */
     function destroy() {
         if (_subscription) {
-            supabase.removeChannel(_subscription);
+            sb.removeChannel(_subscription);
             _subscription = null;
         }
         clearTimeout(_writeTimeout);

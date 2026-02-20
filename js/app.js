@@ -57,6 +57,7 @@
             _showError(error.message);
             return;
         }
+        // Auth state change listener will handle view switching
     });
 
     // ── Signup ─────────────────────────────────────────────────────
@@ -75,7 +76,7 @@
 
         _setLoading(signupBtn, true);
 
-        const { user, error } = await Auth.signUp(email, password);
+        const { user, session, error } = await Auth.signUp(email, password);
 
         _setLoading(signupBtn, false);
 
@@ -84,12 +85,11 @@
             return;
         }
 
-        // Supabase may require email confirmation — show success message
-        if (user && !user.confirmed_at && user.identities?.length === 0) {
-            _showSuccess('Check your email to confirm your account.');
-        } else {
-            _showSuccess('Account created! You are now logged in.');
+        // If no session returned, email confirmation is required
+        if (!session) {
+            _showSuccess('Account created! Please check your email to confirm, then log in.');
         }
+        // If session exists, the auth state listener will auto-switch to notepad
     });
 
     // ── Logout ─────────────────────────────────────────────────────
